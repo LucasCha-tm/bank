@@ -1,7 +1,8 @@
+
 import React from "react";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Menu, LogOut } from "lucide-react";
+import { Bell, Menu, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 
-const Header = ({ user, onLogout }) => {
+const Header = ({ user, onLogout, siteName }) => {
   const headerVariants = {
     hidden: { opacity: 0, y: -20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -26,6 +27,7 @@ const Header = ({ user, onLogout }) => {
     return names[0][0].toUpperCase() + names[names.length - 1][0].toUpperCase();
   };
 
+  const displayName = siteName || "RP Bank";
 
   return (
     <motion.header
@@ -40,9 +42,11 @@ const Header = ({ user, onLogout }) => {
         </Button>
         <div className="flex items-center">
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center mr-2">
-            <span className="text-primary-foreground font-bold">RP</span>
+            <span className="text-primary-foreground font-bold text-xs">
+              {displayName.substring(0,2).toUpperCase()}
+            </span>
           </div>
-          <h1 className="text-xl font-bold">RP Bank</h1>
+          <h1 className="text-xl font-bold">{displayName}</h1>
         </div>
       </div>
       
@@ -70,6 +74,11 @@ const Header = ({ user, onLogout }) => {
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.id || "Non connecté"}
                 </p>
+                {user?.role === 'admin' && (
+                  <p className="text-xs leading-none text-primary flex items-center mt-1">
+                    <ShieldCheck className="h-3 w-3 mr-1"/> Administrateur
+                  </p>
+                )}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

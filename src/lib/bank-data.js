@@ -1,4 +1,16 @@
-// Fonction pour initialiser les données bancaires dans localStorage pour un utilisateur spécifique
+
+const SITE_SETTINGS_KEY = "rpBankSiteSettings";
+const USERS_KEY = "rpBankUsers";
+
+export const getSiteSettings = () => {
+  const settings = localStorage.getItem(SITE_SETTINGS_KEY);
+  return settings ? JSON.parse(settings) : { siteName: null, adminUser: null };
+};
+
+export const saveSiteSettings = (settings) => {
+  localStorage.setItem(SITE_SETTINGS_KEY, JSON.stringify(settings));
+};
+
 export const initBankData = (userId) => {
   const userBankAccountsKey = `bankAccounts_${userId}`;
   const userBankContactsKey = `bankContacts_${userId}`;
@@ -8,6 +20,12 @@ export const initBankData = (userId) => {
   }
   if (!localStorage.getItem(userBankContactsKey)) {
     localStorage.setItem(userBankContactsKey, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(SITE_SETTINGS_KEY)) {
+    localStorage.setItem(SITE_SETTINGS_KEY, JSON.stringify({ siteName: null, adminUser: null }));
+  }
+  if (!localStorage.getItem(USERS_KEY)) {
+    localStorage.setItem(USERS_KEY, JSON.stringify({}));
   }
 };
 
@@ -32,7 +50,6 @@ export const createNewAccount = (userId, accountName, accountType = "Courant") =
   localStorage.setItem(userBankAccountsKey, JSON.stringify(accounts));
   return newAccount;
 };
-
 
 export const getAccounts = (userId) => {
   if (!userId) return [];
@@ -109,7 +126,6 @@ export const makeTransfer = (fromAccountId, toAccountNumberOrInternalId, amount,
   return true;
 };
 
-
 export const getContacts = (userId) => {
   if (!userId) return [];
   const userBankContactsKey = `bankContacts_${userId}`;
@@ -129,4 +145,79 @@ export const addContact = (contact, userId) => {
   contacts.push(newContact);
   localStorage.setItem(userBankContactsKey, JSON.stringify(contacts));
   return newContact;
+};
+
+export const getAllUsers = () => {
+  const users = localStorage.getItem(USERS_KEY);
+  return users ? JSON.parse(users) : {};
+};
+
+export const updateUserAccountData = (userId, accountId, updatedData) => {
+  const userAccounts = getAccounts(userId);
+  const accountIndex = userAccounts.findIndex(acc => acc.id === accountId);
+  if (accountIndex !== -1) {
+    userAccounts[accountIndex] = { ...userAccounts[accountIndex], ...updatedData };
+    localStorage.setItem(`bankAccounts_${userId}`, JSON.stringify(userAccounts));
+    return true;
+  }
+  return false;
+};
+
+export const deleteUserAccountAdmin = (userId, accountId) => {
+  let userAccounts = getAccounts(userId);
+  userAccounts = userAccounts.filter(acc => acc.id !== accountId);
+  localStorage.setItem(`bankAccounts_${userId}`, JSON.stringify(userAccounts));
+  return true;
+};
+
+export const deleteUserTransactionAdmin = (userId, accountId, transactionId) => {
+  const userAccounts = getAccounts(userId);
+  const accountIndex = userAccounts.findIndex(acc => acc.id === accountId);
+  if (accountIndex !== -1) {
+    const originalBalanceEffect = userAccounts[accountIndex].transactions.find(tx => tx.id === transactionId)?.amount || 0;
+    userAccounts[accountIndex].transactions = userAccounts[accountIndex].transactions.filter(tx => tx.id !== transactionId);
+    userAccounts[accountIndex].balance -= originalBalanceEffect; // Ajuster le solde
+    localStorage.setItem(`bankAccounts_${userId}`, JSON.stringify(userAccounts));
+    return true;
+  }
+  return false;
+};
+
+// API Concept (Not functional with localStorage for external access)
+export const getApiUserBalance = (userId, accountId) => {
+  // In a real API, you'd have authentication here (API key, token, etc.)
+  // This is a conceptual placeholder.
+  console.warn("API Call Simulation: getApiUserBalance. This is not a real, secure API endpoint.");
+  const account = getAccount(accountId, userId);
+  if (account) {
+    return { balance: account.balance, currency: account.currency };
+  }
+  return { error: "Account not found or access denied." };
+};
+
+export const makeApiPayment = (fromUserId, fromAccountId, toUserId, toAccountId, amount) => {
+  // Conceptual placeholder for an API payment function
+  console.warn("API Call Simulation: makeApiPayment. This is not a real, secure API endpoint.");
+  try {
+    // Simulate debit from sender
+    const senderAccounts = getAccounts(fromUserId);
+    const senderAccountIndex = senderAccounts.findIndex(acc => acc.id === fromAccountId);
+    if (senderAccountIndex === -1) throw new Error("Sender account not found.");
+    if (senderAccounts[senderAccountIndex].balance < amount) throw new Error("Insufficient funds in sender account.");
+    senderAccounts[senderAccountIndex].balance -= amount;
+    // Add debit transaction for sender
+    localStorage.setItem(`bankAccounts_${fromUserId}`, JSON.stringify(senderAccounts));
+
+    // Simulate credit to receiver
+    const receiverAccounts = getAccounts(toUserId);
+    const receiverAccountIndex = receiverAccounts.findIndex(acc => acc.id === toAccountId);
+    if (receiverAccountIndex === -1) throw new Error("Receiver account not found.");
+    receiverAccounts[receiverAccountIndex].balance += amount;
+    // Add credit transaction for receiver
+    localStorage.setItem(`bankAccounts_${toUserId}`, JSON.stringify(receiverAccounts));
+    
+    return { success: true, message: "Payment processed conceptually." };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
